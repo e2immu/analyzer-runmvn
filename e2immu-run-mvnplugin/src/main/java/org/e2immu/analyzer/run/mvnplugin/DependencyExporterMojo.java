@@ -62,6 +62,9 @@ public class DependencyExporterMojo extends AbstractMojo {
     @Parameter(property = "sourcePackages", defaultValue = "")
     private String sourcePackages;
 
+    @Parameter(property = "sourceEncoding", defaultValue = "UTF-8")
+    private String sourceEncoding;
+
     @Component
     private ProjectDependenciesResolver dependenciesResolver;
 
@@ -87,8 +90,7 @@ public class DependencyExporterMojo extends AbstractMojo {
 
         Set<String> excludeFromClasspathSet = excludeFromClasspath == null || excludeFromClasspath.isBlank() ? Set.of() :
                 Arrays.stream(excludeFromClasspath.split("[;,]\\s*")).collect(Collectors.toUnmodifiableSet());
-        ComputeSourceSets computeSourceSets = new ComputeSourceSets();
-        ComputeSourceSets.Result result = computeSourceSets.compute(project, sourcePackages,
+        ComputeSourceSets.Result result = new ComputeSourceSets().compute(project, sourceEncoding, sourcePackages,
                 testSourcePackages, excludeFromClasspathSet);
 
         makeJavaModules(jmods).forEach(set -> result.sourceSetsByName().put(set.name(), set));

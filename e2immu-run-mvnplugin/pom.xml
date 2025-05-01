@@ -13,9 +13,9 @@
     <description>A Maven plugin to export dependency tree information</description>
 
     <properties>
-        <maven.version>3.8.6</maven.version>
-        <maven.plugin.version>3.7.0</maven.plugin.version>
-        <maven.plugin.testing.version>3.3.0</maven.plugin.testing.version>
+        <maven.version>3.9.9</maven.version>
+        <maven.plugin.version>3.15.1</maven.plugin.version>
+
         <jackson.version>2.18.2</jackson.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>21</maven.compiler.source>
@@ -89,12 +89,6 @@
         </dependency>
         <dependency>
             <groupId>org.e2immu</groupId>
-            <artifactId>e2immu-inspection-resource</artifactId>
-            <version>${e2immu.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.e2immu</groupId>
             <artifactId>e2immu-run-config</artifactId>
             <version>${e2immu.version}</version>
             <scope>provided</scope>
@@ -160,18 +154,7 @@
         </dependency>
 
         <!-- Testing -->
-        <dependency>
-            <groupId>org.apache.maven.plugin-testing</groupId>
-            <artifactId>maven-plugin-testing-harness</artifactId>
-            <version>${maven.plugin.testing.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.13.2</version>
-            <scope>test</scope>
-        </dependency>
+
     </dependencies>
 
     <build>

@@ -5,83 +5,48 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.e2immu</groupId>
-    <artifactId>analyzer-run-mvnplugin</artifactId>
+    <artifactId>testmvnpluginexport</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>Test Dependency Exporter Maven Plugin</name>
 
     <properties>
-        <maven.version>3.8.6</maven.version>
-        <maven.plugin.version>3.7.0</maven.plugin.version>
-        <maven.plugin.testing.version>3.3.0</maven.plugin.testing.version>
-        <jackson.version>2.14.2</jackson.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
+        <e2immu.version>0.8.0</e2immu.version>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>codeartifact</id>
+            <name>codeartifact</name>
+            <url>https://codelaser-975050168225.d.codeartifact.eu-central-1.amazonaws.com/maven/CodeLaser</url>
+        </repository>
+    </repositories>
+
     <dependencies>
-        <!-- Maven Plugin API -->
         <dependency>
-            <groupId>org.apache.maven</groupId>
-            <artifactId>maven-plugin-api</artifactId>
-            <version>${maven.version}</version>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-external-support</artifactId>
+            <version>${e2immu.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.maven</groupId>
-            <artifactId>maven-core</artifactId>
-            <version>${maven.version}</version>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-internal-util</artifactId>
+            <version>${e2immu.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.maven</groupId>
-            <artifactId>maven-artifact</artifactId>
-            <version>${maven.version}</version>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-internal-graph</artifactId>
+            <version>${e2immu.version}</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.maven</groupId>
-            <artifactId>maven-model</artifactId>
-            <version>${maven.version}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Maven Plugin Annotations -->
-        <dependency>
-            <groupId>org.apache.maven.plugin-tools</groupId>
-            <artifactId>maven-plugin-annotations</artifactId>
-            <version>${maven.plugin.version}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Maven Resolver API (formerly Aether) -->
-        <dependency>
-            <groupId>org.apache.maven.resolver</groupId>
-            <artifactId>maven-resolver-api</artifactId>
-            <version>1.8.2</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.maven.resolver</groupId>
-            <artifactId>maven-resolver-util</artifactId>
-            <version>1.8.2</version>
-        </dependency>
-
-        <!-- Jackson for JSON serialization -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
 
         <!-- Testing -->
-        <dependency>
-            <groupId>org.apache.maven.plugin-testing</groupId>
-            <artifactId>maven-plugin-testing-harness</artifactId>
-            <version>${maven.plugin.testing.version}</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>

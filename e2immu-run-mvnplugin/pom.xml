@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.e2immu</groupId>
-    <artifactId>analyzer-run-mvnplugin</artifactId>
+    <artifactId>e2immu-run-mvnplugin</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
@@ -16,13 +16,96 @@
         <maven.version>3.8.6</maven.version>
         <maven.plugin.version>3.7.0</maven.plugin.version>
         <maven.plugin.testing.version>3.3.0</maven.plugin.testing.version>
-        <jackson.version>2.14.2</jackson.version>
+        <jackson.version>2.18.2</jackson.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <e2immu.version>0.8.0</e2immu.version>
+
     </properties>
 
+    <repositories>
+        <repository>
+            <id>codeartifact</id>
+            <name>codeartifact</name>
+            <url>https://codelaser-975050168225.d.codeartifact.eu-central-1.amazonaws.com/maven/CodeLaser</url>
+        </repository>
+    </repositories>
+
     <dependencies>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-external-support</artifactId>
+            <version>${e2immu.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-internal-util</artifactId>
+            <version>${e2immu.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-internal-graph</artifactId>
+            <version>${e2immu.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-cst-api</artifactId>
+            <version>${e2immu.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-cst-impl</artifactId>
+            <version>${e2immu.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-inspection-api</artifactId>
+            <version>${e2immu.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-inspection-resource</artifactId>
+            <version>${e2immu.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-shallow-analyzer</artifactId>
+            <version>${e2immu.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-modification-prepwork</artifactId>
+            <version>${e2immu.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-inspection-resource</artifactId>
+            <version>${e2immu.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-run-config</artifactId>
+            <version>${e2immu.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-run-main</artifactId>
+            <version>${e2immu.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Maven Plugin API -->
         <dependency>
             <groupId>org.apache.maven</groupId>

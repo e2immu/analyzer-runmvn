@@ -9,7 +9,9 @@ import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.*;
+import org.apache.maven.project.DependencyResolutionException;
+import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.ProjectDependenciesResolver;
 import org.e2immu.analyzer.run.config.util.JavaModules;
 import org.e2immu.analyzer.run.config.util.JsonStreaming;
 import org.e2immu.language.cst.api.element.SourceSet;
@@ -19,12 +21,7 @@ import org.e2immu.language.inspection.resource.SourceSetImpl;
 import org.e2immu.util.internal.graph.G;
 import org.e2immu.util.internal.graph.V;
 import org.e2immu.util.internal.graph.op.Linearize;
-import org.eclipse.aether.artifact.Artifact;
-import org.eclipse.aether.graph.DependencyFilter;
-import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.repository.RemoteRepository;
-import org.eclipse.aether.util.artifact.JavaScopes;
-import org.eclipse.aether.util.filter.DependencyFilterUtils;
 
 import java.io.File;
 import java.net.URI;
@@ -99,8 +96,8 @@ public class DependencyExporterMojo extends AbstractMojo {
 
         Set<String> excludeFromClasspathSet = excludeFromClasspath == null || excludeFromClasspath.isBlank() ? Set.of() :
                 Arrays.stream(excludeFromClasspath.split("[;,]\\s*")).collect(Collectors.toUnmodifiableSet());
-        ComputeSourceSets.Result result = new ComputeSourceSets(absWorkingDirectory)
-                .compute(project, sourceEncoding, sourcePackages, testSourcePackages, excludeFromClasspathSet);
+        ComputeSourceSets.Result result = new ComputeSourceSets(absWorkingDirectory, dependenciesResolver, project,
+                session, getLog()).compute(sourceEncoding, sourcePackages, testSourcePackages, excludeFromClasspathSet);
 
         makeJavaModules(jmods).forEach(set -> result.sourceSetsByName().put(set.name(), set));
 
@@ -138,65 +135,5 @@ public class DependencyExporterMojo extends AbstractMojo {
             }
         }
         return sets;
-    }
-
-
-    private void computeDependencies() throws DependencyResolutionException {
-        // Get all scopes you want to analyze
-        List<String> scopes = Arrays.asList(
-                JavaScopes.COMPILE,
-                JavaScopes.TEST,
-                JavaScopes.RUNTIME,
-                JavaScopes.PROVIDED
-        );
-
-
-        // Create result object for JSON output
-        Map<String, Object> scopeData = new HashMap<>();
-
-
-        // Process each scope
-        for (String scope : scopes) {
-            // Create dependency request for this scope
-            DependencyFilter classpathFilter = DependencyFilterUtils.classpathFilter(scope);
-            ProjectBuildingRequest buildingRequest = new DefaultProjectBuildingRequest(session.getProjectBuildingRequest());
-            buildingRequest.setProject(project);
-
-            // Resolve the dependencies
-            DependencyResolutionRequest resolutionRequest = new DefaultDependencyResolutionRequest();
-            resolutionRequest.setMavenProject(project);
-            resolutionRequest.setRepositorySession(session.getRepositorySession());
-
-            DependencyResolutionResult resolutionResult = dependenciesResolver.resolve(resolutionRequest);
-
-            // Process resolution result
-            List<Map<String, Object>> scopeDependencies = processDependencyNodes(resolutionResult.getDependencyGraph());
-            scopeData.put(scope, scopeDependencies);
-        }
-
-    }
-
-    private List<Map<String, Object>> processDependencyNodes(DependencyNode node) {
-        List<Map<String, Object>> dependencies = new ArrayList<>();
-
-        for (DependencyNode child : node.getChildren()) {
-            Map<String, Object> dependency = new HashMap<>();
-            Artifact artifact = child.getArtifact();
-
-            dependency.put("groupId", artifact.getGroupId());
-            dependency.put("artifactId", artifact.getArtifactId());
-            dependency.put("version", artifact.getVersion());
-            dependency.put("type", artifact.getExtension());
-            dependency.put("scope", child.getDependency().getScope());
-            dependency.put("optional", child.getDependency().isOptional());
-
-            if (!child.getChildren().isEmpty()) {
-                dependency.put("dependencies", processDependencyNodes(child));
-            }
-
-            dependencies.add(dependency);
-        }
-
-        return dependencies;
     }
 }

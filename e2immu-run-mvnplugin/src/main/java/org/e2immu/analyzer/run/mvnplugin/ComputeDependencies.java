@@ -6,7 +6,10 @@ import org.e2immu.util.internal.graph.G;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class ComputeDependencies {
     private static final Logger LOGGER = LoggerFactory.getLogger(ComputeDependencies.class);
@@ -25,43 +28,17 @@ public class ComputeDependencies {
                 jmods.add(jmod);
             }
         }
-        Map<String, Boolean> jmodsAndExternalToMain = new HashMap<>();
-        jmods.forEach(jmod -> jmodsAndExternalToMain.put(jmod, true));
+
         HashSet<String> seen = new HashSet<>();
+
         LOGGER.info(" -- now recursing for source sets");
-        recursionForSourceSets(builder, result, seen, jmodsAndExternalToMain);
-
-        return builder.build();
-    }
-
-    private List<String> recursionForSourceSets(G.Builder<String> builder, ComputeSourceSets.Result result,
-                                                Set<String> seen, Map<String, Boolean> jmodsAndExternalToMain) {
-        if (!seen.add(result.mainSourceSetName())) return List.of();
-        LOGGER.info("Enter recursion for {}, have {} dependencies",
-                result.mainSourceSetName(), result.sourceSetDependencies().size());
-
-        // depth first
-        List<String> dependentSourceSets = new ArrayList<>();
-        for (ComputeSourceSets.Result sub : result.sourceSetDependencies()) {
-            dependentSourceSets.addAll(recursionForSourceSets(builder, sub, seen, jmodsAndExternalToMain));
-        }
-
         List<String> mainSourceSets = new ArrayList<>();
         List<String> testSourceSets = new ArrayList<>();
-
-        // every source set is dependent on all the external libraries, and the jmods
         for (SourceSet sourceSet : result.sourceSetsByName().values()) {
-            if (!sourceSet.externalLibrary()) {
-                String name = sourceSet.name();
-                jmodsAndExternalToMain.forEach((je, isMain) -> {
-                    if (sourceSet.test() || isMain) {
-                        LOGGER.info("Adding SRC->EXT/JMOD {} -> {}", name, je);
-                        builder.add(name, List.of(je));
-                    }
-                });
-                LOGGER.info("Adding SRC->DEP {} -> {}", name, dependentSourceSets);
-                builder.add(name, dependentSourceSets);
+            String name = sourceSet.name();
 
+            recursionForSourceSets(builder, sourceSet, seen, jmods, 1);
+            if (!sourceSet.externalLibrary()) {
                 if (sourceSet.test()) {
                     testSourceSets.add(name);
                 } else {
@@ -73,9 +50,22 @@ public class ComputeDependencies {
             LOGGER.info("ADDING SRC MAIN->TEST {} -> {}", testName, mainSourceSets);
             builder.add(testName, mainSourceSets);
         }
-        LOGGER.info("Ended recursion for {}", result.mainSourceSetName());
-        return mainSourceSets;
+
+        return builder.build();
     }
 
+    private void recursionForSourceSets(G.Builder<String> builder, SourceSet sourceSet,
+                                        Set<String> seen, Set<String> jmods, int indent) {
+        if (!seen.add(sourceSet.name())) return;
+        LOGGER.info("@@".repeat(indent) + " enter recursion for {}", sourceSet.name());
 
+        String name = sourceSet.name();
+        builder.add(name, jmods);
+        if (sourceSet.dependencies() != null) {
+            for (SourceSet dep : sourceSet.dependencies()) {
+                builder.add(name, List.of(dep.name()));
+                recursionForSourceSets(builder, dep, seen, jmods, indent + 1);
+            }
+        }
+    }
 }

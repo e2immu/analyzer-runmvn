@@ -43,6 +43,14 @@ public class ComputeSourceSets {
         String projectName = project.getName();
         Charset encoding = Charset.forName(sourceEncoding, Charset.defaultCharset());
 
+        Set<SourceSet> deps = new HashSet<>();
+        deps.addAll(computeClassPathParts(JavaScopes.COMPILE, false, false, sourceSetsByName,
+                excludeFromClasspathSet));
+        deps.addAll(computeClassPathParts(JavaScopes.PROVIDED, false, true, sourceSetsByName,
+                excludeFromClasspathSet));
+        deps.addAll(computeClassPathParts(JavaScopes.RUNTIME, false, true, sourceSetsByName,
+                excludeFromClasspathSet));
+        log.info("Have " + deps.size() + " dependent source sets for main");
         List<Path> sourcePaths = project.getCompileSourceRoots().stream()
                 .map(path -> absWorkingDirectory.relativize(Path.of(path))).toList();
         if (!sourcePaths.isEmpty()) {
@@ -51,9 +59,12 @@ public class ComputeSourceSets {
             SourceSet testSourceSet = new SourceSetImpl(projectName + "/main",
                     sourcePaths, URI.create("file:" + sourcePaths.getFirst()),
                     encoding, false, false, false,
-                    false, false, restrictToPackages, null);
+                    false, false, restrictToPackages, Set.copyOf(deps));
             sourceSetsByName.put(testSourceSet.name(), testSourceSet);
         }
+        deps.addAll(computeClassPathParts(JavaScopes.TEST, true, false, sourceSetsByName,
+                excludeFromClasspathSet));
+        log.info("Have " + deps.size() + " dependent source sets for test");
         List<Path> testSourcePaths = project.getTestCompileSourceRoots().stream()
                 .map(path -> absWorkingDirectory.relativize(Path.of(path))).toList();
         if (!testSourcePaths.isEmpty()) {
@@ -62,19 +73,15 @@ public class ComputeSourceSets {
             SourceSet testSourceSet = new SourceSetImpl(projectName + "/test", testSourcePaths,
                     URI.create("file:" + testSourcePaths.getFirst()),
                     encoding, true, false, false, false, false,
-                    restrictToTestPackages, null);
+                    restrictToTestPackages, Set.copyOf(deps));
             sourceSetsByName.put(testSourceSet.name(), testSourceSet);
         }
 
-        computeClassPathParts(JavaScopes.COMPILE, false, false, sourceSetsByName);
-        computeClassPathParts(JavaScopes.TEST, true, false, sourceSetsByName);
-        computeClassPathParts(JavaScopes.PROVIDED, false, true, sourceSetsByName);
-        computeClassPathParts(JavaScopes.RUNTIME, false, true, sourceSetsByName);
-
-        return new Result("main", sourceSetsByName, List.of());
+        return new Result("main", sourceSetsByName);
     }
 
-    private void computeClassPathParts(String scope, boolean test, boolean runtimeOnly, Map<String, SourceSet> sourceSetsByName)
+    private Set<SourceSet> computeClassPathParts(String scope, boolean test, boolean runtimeOnly,
+                                                 Map<String, SourceSet> sourceSetsByName, Set<String> excludeFromClasspathSet)
             throws DependencyResolutionException {
 
         // Create dependency request for this scope
@@ -90,28 +97,39 @@ public class ComputeSourceSets {
         DependencyResolutionResult resolutionResult = dependenciesResolver.resolve(resolutionRequest);
 
         // Process resolution result
-        processDependencyNodes(resolutionResult.getDependencyGraph(), test, runtimeOnly, sourceSetsByName);
-
-
+        log.info("Computing class path parts for " + scope);
+        return processDependencyNodes(resolutionResult.getDependencyGraph(), test, runtimeOnly, sourceSetsByName,
+                excludeFromClasspathSet, 1);
     }
 
-    private void processDependencyNodes(DependencyNode node, boolean test, boolean runtimeOnly, Map<String, SourceSet> sourceSetsByName) {
+    private Set<SourceSet> processDependencyNodes(DependencyNode node, boolean test, boolean runtimeOnly,
+                                                  Map<String, SourceSet> sourceSetsByName,
+                                                  Set<String> excludeFromClasspathSet,
+                                                  int indent) {
+        Set<SourceSet> results = new HashSet<>();
         for (DependencyNode child : node.getChildren()) {
             Artifact artifact = child.getArtifact();
             String name = artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + artifact.getVersion();
-            if (!sourceSetsByName.containsKey(name)) {
+            if (!sourceSetsByName.containsKey(name) &&
+                (excludeFromClasspathSet.isEmpty() || !excludeFromClasspathSet.contains(artifact.getArtifactId()))) {
+                Set<SourceSet> children;
+                if (child.getChildren().isEmpty()) {
+                    children = Set.of();
+                } else {
+                    children = Set.copyOf(processDependencyNodes(child, test, runtimeOnly, sourceSetsByName,
+                            excludeFromClasspathSet, indent + 1));
+                }
+                log.info("**".repeat(indent) + " " + name + " has " + children.size() + " child(ren)");
                 URI uri = URI.create("file:" + artifact.getFile().getPath());
                 SourceSet sourceSet = new SourceSetImpl(name, null, uri, null, test,
-                        true, true, false, runtimeOnly, null, null);
+                        true, true, false, runtimeOnly, null,
+                        children);
                 sourceSetsByName.put(name, sourceSet);
                 log.info("Added class path part " + name);
+                results.add(sourceSet);
             }
-
-            if (!child.getChildren().isEmpty()) {
-                processDependencyNodes(child, test, runtimeOnly, sourceSetsByName);
-            }
-
         }
+        return results;
     }
 
     private static Set<String> stringToSet(String sourcePackages) {
@@ -121,7 +139,6 @@ public class ComputeSourceSets {
                         .collect(Collectors.toUnmodifiableSet());
     }
 
-    public record Result(String mainSourceSetName, Map<String, SourceSet> sourceSetsByName,
-                         List<Result> sourceSetDependencies) {
+    public record Result(String mainSourceSetName, Map<String, SourceSet> sourceSetsByName) {
     }
 }

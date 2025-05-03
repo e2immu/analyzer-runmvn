@@ -15,7 +15,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
-        <e2immu.version>0.8.0</e2immu.version>
+        <e2immu.version>0.8.1-SNAPSHOT</e2immu.version>
     </properties>
 
     <repositories>
@@ -132,12 +132,11 @@
                 <executions>
                     <execution>
                         <goals>
-                            <goal>export</goal>
+                            <goal>e2immu-write-input-configuration</goal>
                         </goals>
                     </execution>
                 </executions>
                 <configuration>
-                    <outputFile>${project.build.directory}/dependencies.json</outputFile>
                     <sourceEncoding>UTF-8</sourceEncoding>
                 </configuration>
             </plugin>

@@ -20,7 +20,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
-        <e2immu.version>0.8.0</e2immu.version>
+        <e2immu.version>0.8.1-SNAPSHOT</e2immu.version>
 
     </properties>
 

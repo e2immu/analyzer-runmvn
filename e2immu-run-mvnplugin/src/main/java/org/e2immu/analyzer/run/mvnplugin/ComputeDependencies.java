@@ -27,8 +27,54 @@ public class ComputeDependencies {
         }
         Map<String, Boolean> jmodsAndExternalToMain = new HashMap<>();
         jmods.forEach(jmod -> jmodsAndExternalToMain.put(jmod, true));
+        HashSet<String> seen = new HashSet<>();
+        LOGGER.info(" -- now recursing for source sets");
+        recursionForSourceSets(builder, result, seen, jmodsAndExternalToMain);
 
         return builder.build();
+    }
+
+    private List<String> recursionForSourceSets(G.Builder<String> builder, ComputeSourceSets.Result result,
+                                                Set<String> seen, Map<String, Boolean> jmodsAndExternalToMain) {
+        if (!seen.add(result.mainSourceSetName())) return List.of();
+        LOGGER.info("Enter recursion for {}, have {} dependencies",
+                result.mainSourceSetName(), result.sourceSetDependencies().size());
+
+        // depth first
+        List<String> dependentSourceSets = new ArrayList<>();
+        for (ComputeSourceSets.Result sub : result.sourceSetDependencies()) {
+            dependentSourceSets.addAll(recursionForSourceSets(builder, sub, seen, jmodsAndExternalToMain));
+        }
+
+        List<String> mainSourceSets = new ArrayList<>();
+        List<String> testSourceSets = new ArrayList<>();
+
+        // every source set is dependent on all the external libraries, and the jmods
+        for (SourceSet sourceSet : result.sourceSetsByName().values()) {
+            if (!sourceSet.externalLibrary()) {
+                String name = sourceSet.name();
+                jmodsAndExternalToMain.forEach((je, isMain) -> {
+                    if (sourceSet.test() || isMain) {
+                        LOGGER.info("Adding SRC->EXT/JMOD {} -> {}", name, je);
+                        builder.add(name, List.of(je));
+                    }
+                });
+                LOGGER.info("Adding SRC->DEP {} -> {}", name, dependentSourceSets);
+                builder.add(name, dependentSourceSets);
+
+                if (sourceSet.test()) {
+                    testSourceSets.add(name);
+                } else {
+                    mainSourceSets.add(name);
+                }
+            }
+        }
+        for (String testName : testSourceSets) {
+            LOGGER.info("ADDING SRC MAIN->TEST {} -> {}", testName, mainSourceSets);
+            builder.add(testName, mainSourceSets);
+        }
+        LOGGER.info("Ended recursion for {}", result.mainSourceSetName());
+        return mainSourceSets;
     }
 
 

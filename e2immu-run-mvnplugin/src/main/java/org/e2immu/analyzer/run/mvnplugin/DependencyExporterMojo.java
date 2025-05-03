@@ -10,6 +10,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.*;
+import org.e2immu.analyzer.run.config.util.JavaModules;
 import org.e2immu.analyzer.run.config.util.JsonStreaming;
 import org.e2immu.language.cst.api.element.SourceSet;
 import org.e2immu.language.inspection.api.resource.InputConfiguration;
@@ -30,8 +31,10 @@ import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Mojo(name = "export", defaultPhase = LifecyclePhase.COMPILE, threadSafe = true)
+@Mojo(name = DependencyExporterMojo.WRITE_INPUT_CONFIGURATION_TASK_NAME,
+        defaultPhase = LifecyclePhase.COMPILE, threadSafe = true)
 public class DependencyExporterMojo extends AbstractMojo {
+    public static final String WRITE_INPUT_CONFIGURATION_TASK_NAME = "e2immu-write-input-configuration";
 
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     private MavenProject project;
@@ -42,11 +45,14 @@ public class DependencyExporterMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project.remoteProjectRepositories}", readonly = true, required = true)
     private List<RemoteRepository> remoteRepos;
 
-    @Parameter(property = "outputFile", defaultValue = "${project.build.directory}/dependency-tree.json")
+    @Parameter(property = "outputFile", defaultValue = "${project.build.directory}/inputConfiguration.json")
     private File outputFile;
 
     @Parameter(property = "jre", defaultValue = "")
     private String jre;
+
+    @Parameter(property = "workingDirectory", defaultValue = "${project.basedir}")
+    private String workingDirectory;
 
     @Parameter(property = "excludeFromClasspath", defaultValue = "")
     private String excludeFromClasspath;
@@ -87,11 +93,14 @@ public class DependencyExporterMojo extends AbstractMojo {
     private InputConfiguration makeInputConfiguration() throws DependencyResolutionException {
         InputConfiguration.Builder builder = new InputConfigurationImpl.Builder();
         builder.setAlternativeJREDirectory(jre);
+        builder.setWorkingDirectory(workingDirectory);
+        File absWorkingDirectory = workingDirectory == null || workingDirectory.isBlank()
+                ? project.getBasedir().getAbsoluteFile() : new File(workingDirectory).getAbsoluteFile();
 
         Set<String> excludeFromClasspathSet = excludeFromClasspath == null || excludeFromClasspath.isBlank() ? Set.of() :
                 Arrays.stream(excludeFromClasspath.split("[;,]\\s*")).collect(Collectors.toUnmodifiableSet());
-        ComputeSourceSets.Result result = new ComputeSourceSets().compute(project, sourceEncoding, sourcePackages,
-                testSourcePackages, excludeFromClasspathSet);
+        ComputeSourceSets.Result result = new ComputeSourceSets(absWorkingDirectory)
+                .compute(project, sourceEncoding, sourcePackages, testSourcePackages, excludeFromClasspathSet);
 
         makeJavaModules(jmods).forEach(set -> result.sourceSetsByName().put(set.name(), set));
 
@@ -118,12 +127,7 @@ public class DependencyExporterMojo extends AbstractMojo {
 
     private List<SourceSet> makeJavaModules(String jmodsString) {
         List<SourceSet> sets = new ArrayList<>();
-        Set<String> jmods = new HashSet<>();
-        Collections.addAll(jmods, "java.base");
-        if (jmodsString != null && !jmodsString.isBlank()) {
-            String[] split = jmodsString.split("[,;]\\s*");
-            Collections.addAll(jmods, split);
-        }
+        Set<String> jmods = JavaModules.jmodsFromString(jmodsString);
         for (String jmod : jmods) {
             if (!jmod.isBlank()) {
                 SourceSet set = new SourceSetImpl(jmod, null,

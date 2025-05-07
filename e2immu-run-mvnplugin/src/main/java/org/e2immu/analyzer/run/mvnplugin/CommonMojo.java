@@ -28,22 +28,14 @@ import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Mojo(name = DependencyExporterMojo.WRITE_INPUT_CONFIGURATION_TASK_NAME,
-        defaultPhase = LifecyclePhase.COMPILE, threadSafe = true)
-public class DependencyExporterMojo extends AbstractMojo {
-    public static final String WRITE_INPUT_CONFIGURATION_TASK_NAME = "e2immu-write-input-configuration";
+
+public abstract class CommonMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     private MavenProject project;
 
     @Parameter(defaultValue = "${session}", readonly = true, required = true)
     private MavenSession session;
-
-    @Parameter(defaultValue = "${project.remoteProjectRepositories}", readonly = true, required = true)
-    private List<RemoteRepository> remoteRepos;
-
-    @Parameter(property = "outputFile", defaultValue = "${project.build.directory}/inputConfiguration.json")
-    private File outputFile;
 
     @Parameter(property = "jre", defaultValue = "")
     private String jre;
@@ -57,10 +49,8 @@ public class DependencyExporterMojo extends AbstractMojo {
     @Parameter(property = "jmods", defaultValue = "java.base")
     private String jmods;
 
-
     @Parameter(property = "testSourcePackages", defaultValue = "")
     private String testSourcePackages;
-
 
     @Parameter(property = "sourcePackages", defaultValue = "")
     private String sourcePackages;
@@ -71,23 +61,7 @@ public class DependencyExporterMojo extends AbstractMojo {
     @Component
     private ProjectDependenciesResolver dependenciesResolver;
 
-    @Override
-    public void execute() throws MojoExecutionException, MojoFailureException {
-        try {
-            // Create output directory if it doesn't exist
-            if (outputFile.getParentFile().mkdirs()) {
-                getLog().info("Created directories for " + outputFile.getAbsolutePath());
-            }
-            InputConfiguration inputConfiguration = makeInputConfiguration();
-            ObjectMapper mapper = JsonStreaming.objectMapper();
-            mapper.writerWithDefaultPrettyPrinter().writeValue(outputFile, inputConfiguration);
-            getLog().info("Dependency tree exported to: " + outputFile.getAbsolutePath());
-        } catch (Exception e) {
-            throw new MojoExecutionException("Failed to export dependency tree", e);
-        }
-    }
-
-    private InputConfiguration makeInputConfiguration() throws DependencyResolutionException {
+    protected InputConfiguration makeInputConfiguration() throws DependencyResolutionException {
         InputConfiguration.Builder builder = new InputConfigurationImpl.Builder();
         builder.setAlternativeJREDirectory(jre);
         builder.setWorkingDirectory(workingDirectory);

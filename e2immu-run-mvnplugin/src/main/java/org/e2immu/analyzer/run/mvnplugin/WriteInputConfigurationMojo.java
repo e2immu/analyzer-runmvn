@@ -16,7 +16,7 @@ import java.io.File;
 @Mojo(name = WriteInputConfigurationMojo.WRITE_INPUT_CONFIGURATION_GOAL,
         defaultPhase = LifecyclePhase.COMPILE, threadSafe = true)
 public class WriteInputConfigurationMojo extends CommonMojo {
-    public static final String WRITE_INPUT_CONFIGURATION_GOAL = "e2immu-write-input-configuration";
+    public static final String WRITE_INPUT_CONFIGURATION_GOAL = "write-input-configuration";
 
     @Parameter(property = "outputFile", defaultValue = "${project.build.directory}/inputConfiguration.json")
     private File outputFile;

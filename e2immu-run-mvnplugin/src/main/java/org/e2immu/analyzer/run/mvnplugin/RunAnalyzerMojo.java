@@ -24,7 +24,7 @@ import java.util.Set;
 @Mojo(name = RunAnalyzerMojo.RUN_ANALYZER_GOAL,
         defaultPhase = LifecyclePhase.COMPILE, threadSafe = true)
 public class RunAnalyzerMojo extends CommonMojo {
-    public static final String RUN_ANALYZER_GOAL = "e2immu-run-analyzer";
+    public static final String RUN_ANALYZER_GOAL = "run";
 
     @Parameter(property = "modificationAnalysis", defaultValue = "true")
     private boolean modificationAnalysis;

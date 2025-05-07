@@ -10,7 +10,7 @@
     <packaging>maven-plugin</packaging>
 
     <name>Dependency Exporter Maven Plugin</name>
-    <description>A Maven plugin to export dependency tree information</description>
+    <description>A Maven plugin to run (aspects of) the e2immu analyzer</description>
 
     <properties>
         <maven.version>3.9.9</maven.version>
@@ -18,11 +18,22 @@
 
         <jackson.version>2.18.2</jackson.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.release>21</maven.compiler.release>
         <e2immu.version>0.8.1-SNAPSHOT</e2immu.version>
-
     </properties>
+
+    <distributionManagement>
+        <repository>
+            <id>codeartifact</id>
+            <name>CodeLaser's AWS CodeArtifact Repo</name>
+            <url>https://codelaser-975050168225.d.codeartifact.eu-central-1.amazonaws.com/maven/CodeLaser/</url>
+        </repository>
+        <snapshotRepository>
+            <id>codeartifact</id>
+            <name>CodeLaser's AWS CodeArtifact Repo</name>
+            <url>https://codelaser-975050168225.d.codeartifact.eu-central-1.amazonaws.com/maven/CodeLaser/</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <repositories>
         <repository>
@@ -37,67 +48,71 @@
             <groupId>org.e2immu</groupId>
             <artifactId>e2immu-external-support</artifactId>
             <version>${e2immu.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.e2immu</groupId>
             <artifactId>e2immu-internal-util</artifactId>
             <version>${e2immu.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.e2immu</groupId>
             <artifactId>e2immu-internal-graph</artifactId>
             <version>${e2immu.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.e2immu</groupId>
             <artifactId>e2immu-cst-api</artifactId>
             <version>${e2immu.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.e2immu</groupId>
             <artifactId>e2immu-cst-impl</artifactId>
             <version>${e2immu.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.e2immu</groupId>
             <artifactId>e2immu-inspection-api</artifactId>
             <version>${e2immu.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.e2immu</groupId>
             <artifactId>e2immu-inspection-resource</artifactId>
             <version>${e2immu.version}</version>
-            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-inspection-parser</artifactId>
+            <version>${e2immu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-inspection-integration</artifactId>
+            <version>${e2immu.version}</version>
         </dependency>
         <dependency>
             <groupId>org.e2immu</groupId>
             <artifactId>e2immu-shallow-analyzer</artifactId>
             <version>${e2immu.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.e2immu</groupId>
             <artifactId>e2immu-modification-prepwork</artifactId>
             <version>${e2immu.version}</version>
-            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-modification-linkedvariables</artifactId>
+            <version>${e2immu.version}</version>
         </dependency>
         <dependency>
             <groupId>org.e2immu</groupId>
             <artifactId>e2immu-run-config</artifactId>
             <version>${e2immu.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.e2immu</groupId>
             <artifactId>e2immu-run-main</artifactId>
             <version>${e2immu.version}</version>
-            <scope>provided</scope>
         </dependency>
 
         <!-- Maven Plugin API -->
@@ -153,6 +168,11 @@
             <version>${jackson.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.17</version>
+        </dependency>
         <!-- Testing -->
 
     </dependencies>
@@ -164,7 +184,7 @@
                 <artifactId>maven-plugin-plugin</artifactId>
                 <version>${maven.plugin.version}</version>
                 <configuration>
-                    <goalPrefix>dependency-exporter</goalPrefix>
+                    <goalPrefix>e2immu-analyzer</goalPrefix>
                     <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
                 </configuration>
                 <executions>

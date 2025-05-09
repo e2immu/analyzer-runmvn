@@ -1,29 +1,31 @@
 package org.e2immu.analyzer.run.mvnplugin;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Component;
-import org.apache.maven.plugins.annotations.LifecyclePhase;
-import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.DependencyResolutionException;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.ProjectDependenciesResolver;
 import org.e2immu.analyzer.run.config.util.JavaModules;
-import org.e2immu.analyzer.run.config.util.JsonStreaming;
+import org.e2immu.analyzer.shallow.analyzer.ToolChain;
 import org.e2immu.language.cst.api.element.SourceSet;
+import org.e2immu.language.cst.api.expression.ConstructorCall;
+import org.e2immu.language.cst.api.expression.MethodCall;
+import org.e2immu.language.cst.api.info.MethodInfo;
+import org.e2immu.language.cst.api.info.TypeInfo;
+import org.e2immu.language.inspection.api.integration.JavaInspector;
+import org.e2immu.language.inspection.api.parser.ParseResult;
 import org.e2immu.language.inspection.api.resource.InputConfiguration;
+import org.e2immu.language.inspection.integration.JavaInspectorImpl;
 import org.e2immu.language.inspection.resource.InputConfigurationImpl;
 import org.e2immu.language.inspection.resource.SourceSetImpl;
 import org.e2immu.util.internal.graph.G;
 import org.e2immu.util.internal.graph.V;
 import org.e2immu.util.internal.graph.op.Linearize;
-import org.eclipse.aether.repository.RemoteRepository;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -109,5 +111,61 @@ public abstract class CommonMojo extends AbstractMojo {
             }
         }
         return sets;
+    }
+
+    protected record ParseSourcesResult(ParseResult parseResult, JavaInspector javaInspector) {
+    }
+
+    protected ParseSourcesResult parseSources() throws DependencyResolutionException, IOException {
+
+        InputConfiguration inputConfiguration = makeInputConfiguration();
+        JavaInspector javaInspector = new JavaInspectorImpl();
+
+        InputConfiguration withJavaModules = inputConfiguration.withE2ImmuSupportFromClasspath().withDefaultModules();
+        getLog().info("Working directory: " + withJavaModules.workingDirectory());
+        javaInspector.initialize(withJavaModules);
+
+        String jdkSpec = ToolChain.extractLibraryName(javaInspector.compiledTypesManager().typesLoaded(),
+                false);
+        String mapped = ToolChain.mapJreShortNameToAnalyzedPackageShortName(jdkSpec);
+        getLog().info("Resolved analyzed package files for " + jdkSpec + " -> " + mapped);
+
+        JavaInspector.ParseOptions parseOptions = new JavaInspectorImpl.ParseOptionsBuilder()
+                .setFailFast(true).setDetailedSources(true).build();
+        ParseResult parseResult = javaInspector.parse(parseOptions).parseResult();
+        return new ParseSourcesResult(parseResult, javaInspector);
+    }
+
+    protected static String packagePrefixGenerator(String packagePrefix, SourceSet sourceSet) {
+        String pp = packagePrefix == null || packagePrefix.isBlank() ? "" : packagePrefix;
+        if (sourceSet == null || sourceSet.name() == null || sourceSet.name().isBlank()) return pp;
+        String name = sourceSet.name().toLowerCase().replaceAll("[.:-]", "_");
+        if (name.endsWith("_jar")) name = name.substring(0, name.length() - 4);
+        if (pp.isBlank()) return name;
+        return pp + "." + name;
+    }
+
+    protected static Map<MethodInfo, Integer> methodCallFrequencies(ParseResult parseResult) throws IOException {
+        Map<MethodInfo, Integer> methodHistogram = new HashMap<>();
+        parseResult.primaryTypes().stream()
+                .flatMap(TypeInfo::recursiveSubTypeStream)
+                .flatMap(TypeInfo::constructorAndMethodStream)
+                .forEach(mi -> {
+                    mi.methodBody().visit(e -> {
+                        MethodInfo methodInfo = null;
+                        if (e instanceof MethodCall mc &&
+                            !parseResult.primaryTypes().contains(mc.methodInfo().typeInfo().primaryType())) {
+                            methodInfo = mc.methodInfo();
+                        } else if (e instanceof ConstructorCall cc && cc.constructor() != null
+                                   && !parseResult.primaryTypes().contains(cc.constructor().typeInfo().primaryType())) {
+                            methodInfo = cc.constructor();
+                        }
+                        if (methodInfo != null) {
+                            methodHistogram.merge(methodInfo, 1, Integer::sum);
+                        }
+                        return true;
+                    });
+                });
+        return methodHistogram;
     }
 }

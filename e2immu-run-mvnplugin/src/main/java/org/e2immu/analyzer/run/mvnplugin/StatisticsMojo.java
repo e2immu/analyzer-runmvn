@@ -5,17 +5,12 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.DependencyResolutionException;
-import org.e2immu.analyzer.shallow.analyzer.ToolChain;
 import org.e2immu.language.cst.api.element.SourceSet;
 import org.e2immu.language.cst.api.expression.ConstructorCall;
 import org.e2immu.language.cst.api.expression.MethodCall;
 import org.e2immu.language.cst.api.info.MethodInfo;
 import org.e2immu.language.cst.api.info.TypeInfo;
-import org.e2immu.language.cst.api.runtime.Runtime;
-import org.e2immu.language.inspection.api.integration.JavaInspector;
 import org.e2immu.language.inspection.api.parser.ParseResult;
-import org.e2immu.language.inspection.api.resource.InputConfiguration;
-import org.e2immu.language.inspection.integration.JavaInspectorImpl;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -55,30 +50,12 @@ public class StatisticsMojo extends CommonMojo {
             if (methodCallFrequencies.getParentFile().mkdirs()) {
                 getLog().info("Created directories for " + methodCallFrequencies.getAbsolutePath());
             }
-
-            InputConfiguration inputConfiguration = makeInputConfiguration();
-            JavaInspector javaInspector = new JavaInspectorImpl();
-
-            InputConfiguration withJavaModules = inputConfiguration.withE2ImmuSupportFromClasspath().withDefaultModules();
-            getLog().info("Working directory: " + withJavaModules.workingDirectory());
-            javaInspector.initialize(withJavaModules);
-
-            Runtime runtime = javaInspector.runtime();
-
-            String jdkSpec = ToolChain.extractLibraryName(javaInspector.compiledTypesManager().typesLoaded(),
-                    false);
-            String mapped = ToolChain.mapJreShortNameToAnalyzedPackageShortName(jdkSpec);
-            getLog().info("Resolved analyzed package files for " + jdkSpec + " -> " + mapped);
-
-            JavaInspector.ParseOptions parseOptions = new JavaInspectorImpl.ParseOptionsBuilder()
-                    .setFailFast(true).setDetailedSources(true).build();
-            ParseResult parseResult = javaInspector.parse(parseOptions).parseResult();
-
-            methodCallFrequencies(parseResult, methodCallFrequencies, methodCallFrequenciesBySourceSet,
+            ParseSourcesResult psr = parseSources();
+            methodCallFrequencies(psr.parseResult(), methodCallFrequencies, methodCallFrequenciesBySourceSet,
                     t -> true);
-            methodCallFrequencies(parseResult, methodCallFrequenciesMain, methodCallFrequenciesMainBySourceSet,
+            methodCallFrequencies(psr.parseResult(), methodCallFrequenciesMain, methodCallFrequenciesMainBySourceSet,
                     t -> !t.compilationUnit().sourceSet().test());
-            methodCallFrequencies(parseResult, methodCallFrequenciesTest, methodCallFrequenciesTest,
+            methodCallFrequencies(psr.parseResult(), methodCallFrequenciesTest, methodCallFrequenciesTest,
                     t -> t.compilationUnit().sourceSet().test());
         } catch (RuntimeException | IOException | DependencyResolutionException e) {
             throw new MojoExecutionException("Failed to write input configuration", e);

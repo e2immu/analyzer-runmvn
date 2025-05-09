@@ -71,6 +71,16 @@
         </dependency>
         <dependency>
             <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-cst-analysis</artifactId>
+            <version>${e2immu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-cst-io</artifactId>
+            <version>${e2immu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
             <artifactId>e2immu-inspection-api</artifactId>
             <version>${e2immu.version}</version>
         </dependency>

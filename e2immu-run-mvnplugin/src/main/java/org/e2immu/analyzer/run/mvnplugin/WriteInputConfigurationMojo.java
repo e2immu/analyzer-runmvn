@@ -22,7 +22,7 @@ public class WriteInputConfigurationMojo extends CommonMojo {
     private File outputFile;
 
     @Override
-    public void execute() throws MojoExecutionException, MojoFailureException {
+    public void execute() throws MojoExecutionException {
         try {
             // Create output directory if it doesn't exist
             if (outputFile.getParentFile().mkdirs()) {

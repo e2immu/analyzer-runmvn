@@ -30,21 +30,12 @@ public class RunAnalyzerMojo extends CommonMojo {
     private boolean modificationAnalysis;
 
     @Override
-    public void execute() throws MojoExecutionException, MojoFailureException {
+    public void execute() throws MojoExecutionException {
         try {
             InputConfiguration inputConfiguration = makeInputConfiguration();
             JavaInspector javaInspector = new JavaInspectorImpl();
 
-            InputConfiguration withJavaModules = inputConfiguration.withE2ImmuSupportFromClasspath().withDefaultModules();
-            getLog().info("Working directory: " + withJavaModules.workingDirectory());
-            javaInspector.initialize(withJavaModules);
-
-            Runtime runtime = javaInspector.runtime();
-
-            String jdkSpec = ToolChain.extractLibraryName(javaInspector.compiledTypesManager().typesLoaded(),
-                    false);
-            String mapped = ToolChain.mapJreShortNameToAnalyzedPackageShortName(jdkSpec);
-            getLog().info("Resolved analyzed package files for " + jdkSpec + " -> " + mapped);
+            ParseSourcesResult psr = parseSources();
 
             /*
             AnnotatedAPIConfiguration annotatedAPIConfiguration = new AnnotatedAPIConfigurationImpl.Builder()
@@ -54,12 +45,11 @@ public class RunAnalyzerMojo extends CommonMojo {
             Codec codec = new LinkedVariablesCodec(runtime).codec();
             new LoadAnalyzedPackageFiles().go(codec, annotatedAPIConfiguration);
             */
+            Runtime runtime = psr.javaInspector().runtime();
+
             PrepAnalyzer prepAnalyzer = new PrepAnalyzer(runtime);
-            JavaInspector.ParseOptions parseOptions = new JavaInspectorImpl.ParseOptionsBuilder()
-                    .setFailFast(true).setDetailedSources(true).build();
-            Summary summary = javaInspector.parse(parseOptions);
             prepAnalyzer.initialize(javaInspector.compiledTypesManager().typesLoaded());
-            G<Info> dependencyGraph = prepAnalyzer.doPrimaryTypesReturnGraph(Set.copyOf(summary.types()));
+            G<Info> dependencyGraph = prepAnalyzer.doPrimaryTypesReturnGraph(Set.copyOf(psr.parseResult().primaryTypes()));
             ComputeAnalysisOrder cao = new ComputeAnalysisOrder();
             List<Info> order = cao.go(dependencyGraph);
             if (getLog().isDebugEnabled()) {

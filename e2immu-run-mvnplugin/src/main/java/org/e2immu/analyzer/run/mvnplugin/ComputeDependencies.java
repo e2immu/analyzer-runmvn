@@ -1,10 +1,9 @@
 package org.e2immu.analyzer.run.mvnplugin;
 
+import org.apache.maven.plugin.logging.Log;
 import org.e2immu.analyzer.run.config.util.JavaModules;
 import org.e2immu.language.cst.api.element.SourceSet;
 import org.e2immu.util.internal.graph.G;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -12,7 +11,11 @@ import java.util.List;
 import java.util.Set;
 
 public class ComputeDependencies {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ComputeDependencies.class);
+    private final Log log;
+
+    public ComputeDependencies(Log log) {
+        this.log = log;
+    }
 
     public G<String> go(ComputeSourceSets.Result result) {
         G.Builder<String> builder = new G.Builder<>(Long::sum);
@@ -23,7 +26,7 @@ public class ComputeDependencies {
             if (sourceSet.partOfJdk()) {
                 String jmod = sourceSet.name();
                 Set<String> dependencies = JavaModules.jmodDependency(jmod);
-                LOGGER.info("Adding JMOD {} -> {}", jmod, dependencies);
+                log.debug("Adding JMOD " + jmod + " -> " + dependencies);
                 builder.add(jmod, dependencies);
                 jmods.add(jmod);
             }
@@ -31,7 +34,7 @@ public class ComputeDependencies {
 
         HashSet<String> seen = new HashSet<>();
 
-        LOGGER.info(" -- now recursing for source sets");
+        log.debug(" -- now recursing for source sets");
         List<String> mainSourceSets = new ArrayList<>();
         List<String> testSourceSets = new ArrayList<>();
         for (SourceSet sourceSet : result.sourceSetsByName().values()) {
@@ -47,7 +50,7 @@ public class ComputeDependencies {
             }
         }
         for (String testName : testSourceSets) {
-            LOGGER.info("ADDING SRC MAIN->TEST {} -> {}", testName, mainSourceSets);
+            log.debug("ADDING SRC MAIN->TEST " + testName + " -> " + mainSourceSets);
             builder.add(testName, mainSourceSets);
         }
 
@@ -57,7 +60,7 @@ public class ComputeDependencies {
     private void recursionForSourceSets(G.Builder<String> builder, SourceSet sourceSet,
                                         Set<String> seen, Set<String> jmods, int indent) {
         if (!seen.add(sourceSet.name())) return;
-        LOGGER.info("@@".repeat(indent) + " enter recursion for {}", sourceSet.name());
+        log.debug("@@".repeat(indent) + " enter recursion for " + sourceSet.name());
 
         String name = sourceSet.name();
         builder.add(name, jmods);

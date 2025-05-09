@@ -97,7 +97,7 @@ public class ComputeSourceSets {
         DependencyResolutionResult resolutionResult = dependenciesResolver.resolve(resolutionRequest);
 
         // Process resolution result
-        log.info("Computing class path parts for " + scope);
+        log.debug("Computing class path parts for " + scope);
         return processDependencyNodes(resolutionResult.getDependencyGraph(), test, runtimeOnly, sourceSetsByName,
                 excludeFromClasspathSet, 1);
     }
@@ -119,13 +119,13 @@ public class ComputeSourceSets {
                     children = Set.copyOf(processDependencyNodes(child, test, runtimeOnly, sourceSetsByName,
                             excludeFromClasspathSet, indent + 1));
                 }
-                log.info("**".repeat(indent) + " " + name + " has " + children.size() + " child(ren)");
+                log.debug("**".repeat(indent) + " " + name + " has " + children.size() + " child(ren)");
                 URI uri = URI.create("file:" + artifact.getFile().getPath());
                 SourceSet sourceSet = new SourceSetImpl(name, null, uri, null, test,
                         true, true, false, runtimeOnly, null,
                         children);
                 sourceSetsByName.put(name, sourceSet);
-                log.info("Added class path part " + name);
+                log.debug("Added class path part " + name);
                 results.add(sourceSet);
             }
         }

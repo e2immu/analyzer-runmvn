@@ -77,10 +77,12 @@ public abstract class CommonMojo extends AbstractMojo {
 
         makeJavaModules(jmods).forEach(set -> result.sourceSetsByName().put(set.name(), set));
 
-        G<String> graph = new ComputeDependencies().go(result);
+        G<String> graph = new ComputeDependencies(getLog()).go(result);
         List<String> linearization = Linearize.linearize(graph).asList(String::compareToIgnoreCase);
-        getLog().info("Graph: " + graph);
-        getLog().info("Linearization:\n  " + String.join("\n  ", linearization) + "\n");
+        if(getLog().isDebugEnabled()) {
+            getLog().debug("Graph: " + graph);
+            getLog().debug("Linearization:\n  " + String.join("\n  ", linearization) + "\n");
+        }
         for (String name : linearization) {
             Map<V<String>, Long> edges = graph.edges(new V<>(name));
             Set<SourceSet> dependencies = edges == null ? Set.of() : edges.keySet()
@@ -113,7 +115,9 @@ public abstract class CommonMojo extends AbstractMojo {
         return sets;
     }
 
-    protected record ParseSourcesResult(ParseResult parseResult, JavaInspector javaInspector) {
+    protected record ParseSourcesResult(ParseResult parseResult,
+                                        JavaInspector javaInspector,
+                                        InputConfiguration inputConfiguration) {
     }
 
     protected ParseSourcesResult parseSources() throws DependencyResolutionException, IOException {
@@ -133,7 +137,7 @@ public abstract class CommonMojo extends AbstractMojo {
         JavaInspector.ParseOptions parseOptions = new JavaInspectorImpl.ParseOptionsBuilder()
                 .setFailFast(true).setDetailedSources(true).build();
         ParseResult parseResult = javaInspector.parse(parseOptions).parseResult();
-        return new ParseSourcesResult(parseResult, javaInspector);
+        return new ParseSourcesResult(parseResult, javaInspector, inputConfiguration);
     }
 
     protected static String packagePrefixGenerator(String packagePrefix, SourceSet sourceSet) {

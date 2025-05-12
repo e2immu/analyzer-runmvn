@@ -9,6 +9,8 @@ import org.apache.maven.project.DependencyResolutionException;
 import org.e2immu.analyzer.shallow.analyzer.Composer;
 import org.e2immu.analyzer.shallow.analyzer.DecoratorImpl;
 import org.e2immu.language.cst.api.element.Comment;
+import org.e2immu.language.cst.api.element.SourceSet;
+import org.e2immu.language.cst.api.info.ImportComputer;
 import org.e2immu.language.cst.api.info.Info;
 import org.e2immu.language.cst.api.info.MethodInfo;
 import org.e2immu.language.cst.api.info.TypeInfo;
@@ -17,10 +19,7 @@ import org.e2immu.language.cst.api.runtime.Runtime;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -46,18 +45,25 @@ public class WriteAnnotatedAPIsMojo extends CommonMojo {
             Map<MethodInfo, Integer> methodCallFrequencies = methodCallFrequencies(psr.parseResult());
             getLog().info("Have method call frequencies for " + methodCallFrequencies.size() + " methods");
 
+            Set<TypeInfo> acceptedTypes = computeAcceptedTypes(methodCallFrequencies.keySet());
+            Map<MethodInfo, Integer> overrideFrequencies = new HashMap<>();
+            methodCallFrequencies.forEach((mi, f) ->
+                    mi.overrides().forEach(o -> overrideFrequencies.putIfAbsent(o, f)));
+            ImportComputer importComputer = psr.javaInspector().importComputer(Integer.MAX_VALUE);
             Composer composer = new Composer(psr.javaInspector(),
+                    importComputer,
                     set -> packagePrefixGenerator(packagePrefix, set),
-                    w -> true);
+                    w -> acceptedTypes.contains(w.typeInfo()));
             Set<TypeInfo> primaryTypes = psr.javaInspector().compiledTypesManager()
                     .typesLoaded().stream().map(TypeInfo::primaryType)
                     .collect(Collectors.toUnmodifiableSet());
-            getLog().info("Have " + primaryTypes + " primary types loaded");
+            getLog().info("Have " + primaryTypes.size() + " primary types loaded");
 
             Collection<TypeInfo> apiTypes = composer.compose(primaryTypes);
             Map<Info, Info> dollarMap = composer.translateFromDollarToReal();
+
             Qualification.Decorator decorator = new DecoratorWithComments(getLog(), psr.javaInspector().runtime(),
-                    dollarMap, methodCallFrequencies);
+                    dollarMap, methodCallFrequencies, overrideFrequencies);
             composer.write(apiTypes, outputDirectory, decorator);
 
         } catch (RuntimeException | IOException | DependencyResolutionException e) {
@@ -65,8 +71,19 @@ public class WriteAnnotatedAPIsMojo extends CommonMojo {
         }
     }
 
+    private Set<TypeInfo> computeAcceptedTypes(Set<MethodInfo> methodInfos) {
+        Set<TypeInfo> initial = methodInfos.stream().map(MethodInfo::typeInfo).collect(Collectors.toUnmodifiableSet());
+        Set<TypeInfo> superTypes = initial.stream().flatMap(TypeInfo::recursiveSuperTypeStream)
+                .collect(Collectors.toUnmodifiableSet());
+        Stream<TypeInfo> enclosing = Stream.concat(superTypes.stream(), initial.stream())
+                .flatMap(TypeInfo::enclosingTypeStream);
+        return Stream.concat(enclosing, Stream.concat(initial.stream(), superTypes.stream()))
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
     static class DecoratorWithComments extends DecoratorImpl {
         private final Map<MethodInfo, Integer> methodCallFrequencies;
+        private final Map<MethodInfo, Integer> overrideFrequencies;
         private final Runtime runtime;
         private final Map<Info, Info> translationMap;
         private final Log log;
@@ -74,23 +91,36 @@ public class WriteAnnotatedAPIsMojo extends CommonMojo {
         public DecoratorWithComments(Log log,
                                      Runtime runtime,
                                      Map<Info, Info> translationMap,
-                                     Map<MethodInfo, Integer> methodCallFrequencies) {
+                                     Map<MethodInfo, Integer> methodCallFrequencies,
+                                     Map<MethodInfo, Integer> overrideFrequencies) {
             super(runtime, translationMap);
             this.translationMap = translationMap;
             this.log = log;
             this.runtime = runtime;
             this.methodCallFrequencies = methodCallFrequencies;
+            this.overrideFrequencies = overrideFrequencies;
         }
 
         @Override
         public List<Comment> comments(Info infoIn) {
             Info info = translationMap == null ? infoIn : translationMap.getOrDefault(infoIn, infoIn);
             List<Comment> comments = super.comments(info);
-            Integer frequency = info instanceof MethodInfo mi ? methodCallFrequencies.get(mi) : null;
-            log.info("Frequency of " + info + " (from " + infoIn + ") = " + frequency);
-            if (frequency != null) {
-                Comment comment = runtime.newSingleLineComment("frequency " + frequency);
-                return Stream.concat(Stream.of(comment), comments.stream()).toList();
+            if (info instanceof MethodInfo mi) {
+                Integer frequency = methodCallFrequencies.get(mi);
+                Comment comment;
+                if (frequency != null) {
+                    comment = runtime.newSingleLineComment("frequency " + frequency);
+                } else {
+                    Integer overrideFrequency = overrideFrequencies.get(mi);
+                    if (overrideFrequency != null) {
+                        comment = runtime.newSingleLineComment("override has frequency " + overrideFrequency);
+                        return Stream.concat(Stream.of(comment), comments.stream()).toList();
+                    } else {
+                        comment = null;
+                    }
+                }
+                if (comment != null) log.debug("Annotating " + mi + " with " + comment.comment());
+                return Stream.concat(Stream.ofNullable(comment), comments.stream()).toList();
             }
             return comments;
         }

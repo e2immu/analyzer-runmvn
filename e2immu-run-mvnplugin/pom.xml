@@ -101,7 +101,17 @@
         </dependency>
         <dependency>
             <groupId>org.e2immu</groupId>
-            <artifactId>e2immu-shallow-analyzer</artifactId>
+            <artifactId>e2immu-aapi-archive</artifactId>
+            <version>${e2immu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-modification-common</artifactId>
+            <version>${e2immu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.e2immu</groupId>
+            <artifactId>e2immu-modification-io</artifactId>
             <version>${e2immu.version}</version>
         </dependency>
         <dependency>

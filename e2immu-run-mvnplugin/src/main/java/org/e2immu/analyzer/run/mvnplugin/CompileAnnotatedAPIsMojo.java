@@ -5,7 +5,11 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.DependencyResolutionException;
-import org.e2immu.analyzer.shallow.analyzer.*;
+import org.e2immu.analyzer.aapi.parser.AnnotatedAPIConfiguration;
+import org.e2immu.analyzer.aapi.parser.AnnotatedAPIConfigurationImpl;
+import org.e2immu.analyzer.aapi.parser.AnnotatedApiParser;
+import org.e2immu.analyzer.modification.common.defaults.ShallowAnalyzer;
+import org.e2immu.analyzer.modification.io.WriteAnalysis;
 import org.e2immu.language.cst.api.analysis.Codec;
 import org.e2immu.language.cst.api.element.SourceSet;
 import org.e2immu.language.cst.api.info.TypeInfo;
@@ -61,13 +65,13 @@ public class CompileAnnotatedAPIsMojo extends CommonMojo {
             getLog().info("Loaded AAPI files, now running shallow analyzer");
 
             // 2. run the shallow analyzer on all the loaded types
-            ShallowAnalyzer shallowAnalyzer = new ShallowAnalyzer(annotatedApiParser);
-            List<TypeInfo> types = shallowAnalyzer.go();
-            getLog().info("Ran shallow analyzer on " + types + " types");
+            ShallowAnalyzer shallowAnalyzer = new ShallowAnalyzer(annotatedApiParser.runtime(), annotatedApiParser);
+            ShallowAnalyzer.Result rs = shallowAnalyzer.go(annotatedApiParser.typesParsed());
+            getLog().info("Ran shallow analyzer on " + annotatedApiParser.types() + " types");
 
             // 3. write out the result
             Trie<TypeInfo> typeTrie = new Trie<>();
-            types.forEach(ti -> typeTrie.add(ti.packageName().split("\\."), ti));
+            rs.allTypes().forEach(ti -> typeTrie.add(ti.packageName().split("\\."), ti));
 
             WriteAnalysis writeAnalysis = new WriteAnalysis(javaInspector.runtime());
             Codec codec = new CodecImpl(javaInspector.runtime(), PropertyProviderImpl::get,

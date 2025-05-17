@@ -1,15 +1,12 @@
 package org.e2immu.analyzer.run.mvnplugin;
 
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.e2immu.analyzer.modification.linkedvariables.ModAnalyzer;
-import org.e2immu.analyzer.modification.linkedvariables.ModAnalyzerImpl;
+
 import org.e2immu.analyzer.modification.prepwork.PrepAnalyzer;
 import org.e2immu.analyzer.modification.prepwork.callgraph.ComputeAnalysisOrder;
-import org.e2immu.analyzer.shallow.analyzer.ToolChain;
 import org.e2immu.language.cst.api.info.Info;
 import org.e2immu.language.cst.api.runtime.Runtime;
 import org.e2immu.language.inspection.api.integration.JavaInspector;
@@ -56,8 +53,8 @@ public class RunAnalyzerMojo extends CommonMojo {
                 getLog().debug("Analysis order: " + order);
             }
             if (modificationAnalysis) {
-                ModAnalyzer analyzer = new ModAnalyzerImpl(runtime, false);
-                analyzer.go(order);
+             //  ModAnalyzer analyzer = new ModAnalyzerImpl(runtime, false);
+             //   analyzer.go(order);
             } else {
                 getLog().info("Skip modification analysis");
             }

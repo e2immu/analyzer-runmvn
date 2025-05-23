@@ -9,8 +9,8 @@ import org.apache.maven.project.DependencyResolutionException;
 import org.e2immu.analyzer.aapi.parser.Composer;
 import org.e2immu.analyzer.modification.io.DecoratorImpl;
 import org.e2immu.language.cst.api.element.Comment;
+import org.e2immu.language.cst.api.element.Element;
 import org.e2immu.language.cst.api.info.ImportComputer;
-import org.e2immu.language.cst.api.info.Info;
 import org.e2immu.language.cst.api.info.MethodInfo;
 import org.e2immu.language.cst.api.info.TypeInfo;
 import org.e2immu.language.cst.api.output.Qualification;
@@ -59,7 +59,7 @@ public class WriteAnnotatedAPIsMojo extends CommonMojo {
             getLog().info("Have " + primaryTypes.size() + " primary types loaded");
 
             Collection<TypeInfo> apiTypes = composer.compose(primaryTypes);
-            Map<Info, Info> dollarMap = composer.translateFromDollarToReal();
+            Map<Element, Element> dollarMap = composer.translateFromDollarToReal();
 
             Qualification.Decorator decorator = new DecoratorWithComments(getLog(), psr.javaInspector().runtime(),
                     dollarMap, methodCallFrequencies, overrideFrequencies);
@@ -84,12 +84,12 @@ public class WriteAnnotatedAPIsMojo extends CommonMojo {
         private final Map<MethodInfo, Integer> methodCallFrequencies;
         private final Map<MethodInfo, Integer> overrideFrequencies;
         private final Runtime runtime;
-        private final Map<Info, Info> translationMap;
+        private final Map<Element,Element> translationMap;
         private final Log log;
 
         public DecoratorWithComments(Log log,
                                      Runtime runtime,
-                                     Map<Info, Info> translationMap,
+                                     Map<Element, Element> translationMap,
                                      Map<MethodInfo, Integer> methodCallFrequencies,
                                      Map<MethodInfo, Integer> overrideFrequencies) {
             super(runtime, translationMap);
@@ -101,8 +101,8 @@ public class WriteAnnotatedAPIsMojo extends CommonMojo {
         }
 
         @Override
-        public List<Comment> comments(Info infoIn) {
-            Info info = translationMap == null ? infoIn : translationMap.getOrDefault(infoIn, infoIn);
+        public List<Comment> comments(Element infoIn) {
+            Element info = translationMap == null ? infoIn : translationMap.getOrDefault(infoIn, infoIn);
             List<Comment> comments = super.comments(info);
             if (info instanceof MethodInfo mi) {
                 Integer frequency = methodCallFrequencies.get(mi);

@@ -19,7 +19,9 @@ import org.e2immu.language.inspection.integration.ToolChain;
 import org.e2immu.util.internal.graph.G;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Mojo(name = RunAnalyzerMojo.RUN_ANALYZER_GOAL,
         defaultPhase = LifecyclePhase.COMPILE, threadSafe = true)
@@ -45,8 +47,12 @@ public class RunAnalyzerMojo extends CommonMojo {
             G<Info> dependencyGraph = prepAnalyzer.doPrimaryTypesReturnGraph(Set.copyOf(psr.parseResult().primaryTypes()));
             ComputeAnalysisOrder cao = new ComputeAnalysisOrder();
             List<Info> order = cao.go(dependencyGraph);
-            if (getLog().isDebugEnabled()) {
+            if (getLog().isDebugEnabled() && order.size() < 50) {
                 getLog().debug("Analysis order: " + order);
+            } else {
+                Map<String, Integer> histogram = order.stream().collect(Collectors.toUnmodifiableMap(Info::info,
+                        i -> 1, Integer::sum));
+                getLog().info("Type histogram: " + histogram);
             }
             if (modificationAnalysis) {
                 getLog().info("Starting modification analyzer");

@@ -19,7 +19,7 @@
         <jackson.version>2.18.2</jackson.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
-        <e2immu.version>0.8.1-SNAPSHOT</e2immu.version>
+        <e2immu.version>0.8.2-SNAPSHOT</e2immu.version>
     </properties>
 
     <distributionManagement>

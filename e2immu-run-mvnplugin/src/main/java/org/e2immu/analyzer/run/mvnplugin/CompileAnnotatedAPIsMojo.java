@@ -65,7 +65,8 @@ public class CompileAnnotatedAPIsMojo extends CommonMojo {
             getLog().info("Loaded AAPI files, now running shallow analyzer");
 
             // 2. run the shallow analyzer on all the loaded types
-            ShallowAnalyzer shallowAnalyzer = new ShallowAnalyzer(annotatedApiParser.runtime(), annotatedApiParser);
+            ShallowAnalyzer shallowAnalyzer = new ShallowAnalyzer(annotatedApiParser.runtime(), annotatedApiParser,
+                    true);
             ShallowAnalyzer.Result rs = shallowAnalyzer.go(annotatedApiParser.typesParsed());
             getLog().info("Ran shallow analyzer on " + annotatedApiParser.types() + " types");
 

@@ -4,10 +4,11 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.e2immu.analyzer.modification.common.AnalyzerException;
 import org.e2immu.analyzer.modification.io.LoadAnalyzedPackageFiles;
 import org.e2immu.analyzer.modification.linkedvariables.IteratingAnalyzer;
+import org.e2immu.analyzer.modification.linkedvariables.SingleIterationAnalyzer;
 import org.e2immu.analyzer.modification.linkedvariables.impl.IteratingAnalyzerImpl;
-import org.e2immu.analyzer.modification.linkedvariables.impl.ModAnalyzerForTesting;
 import org.e2immu.analyzer.modification.linkedvariables.impl.SingleIterationAnalyzerImpl;
 import org.e2immu.analyzer.modification.linkedvariables.io.LinkedVariablesCodec;
 import org.e2immu.analyzer.modification.prepwork.PrepAnalyzer;
@@ -31,8 +32,19 @@ public class RunAnalyzerMojo extends CommonMojo {
     @Parameter(property = "modificationAnalysis", defaultValue = "true")
     private boolean modificationAnalysis;
 
+    /*
+    failFast: stop immediately
+    collect: collect all exceptions and fail at the end
+    report: do not stop, but report to error log
+     */
+    @Parameter(property = "errorMode", defaultValue = "failFast")
+    private String errorMode;
+
     @Override
     public void execute() throws MojoExecutionException {
+        boolean storeErrors = !"failFast".equalsIgnoreCase(errorMode);
+        boolean failWhenStoredErrors = !"report".equalsIgnoreCase(errorMode);
+
         try {
             ParseSourcesResult psr = parseSources();
             Runtime runtime = psr.javaInspector().runtime();
@@ -56,12 +68,29 @@ public class RunAnalyzerMojo extends CommonMojo {
             }
             if (modificationAnalysis) {
                 getLog().info("Starting modification analyzer");
-                IteratingAnalyzer.Configuration configuration = new IteratingAnalyzerImpl.ConfigurationBuilder().build();
-                ModAnalyzerForTesting analyzer = new SingleIterationAnalyzerImpl(runtime, configuration);
-                analyzer.go(order, 2);
+                IteratingAnalyzer.Configuration configuration = new IteratingAnalyzerImpl.ConfigurationBuilder()
+                        .setStoreErrors(storeErrors)
+                        .build();
+                SingleIterationAnalyzer analyzer = new SingleIterationAnalyzerImpl(runtime, configuration);
+                SingleIterationAnalyzer.Output output = analyzer.go(order, false);
+
+                if (storeErrors && !output.problemsRaised().isEmpty()) {
+                    int n = output.problemsRaised().size();
+                    getLog().error("Modification analysis halted with " + n + " exceptions");
+                    for (Throwable throwable : output.problemsRaised()) {
+                        if (throwable instanceof AnalyzerException ae) {
+                            getLog().error("In " + ae.getInfo() + ": " + ae.getMessage());
+                        }
+                    }
+                    if (failWhenStoredErrors) {
+                        throw new MojoExecutionException("Failed to run analyzer, caught " + n + " exceptions");
+                    }
+                }
             } else {
                 getLog().info("Skip modification analyzer");
             }
+        } catch (MojoExecutionException e) {
+            throw e;
         } catch (Exception e) {
             throw new MojoExecutionException("Failed to run analyzer", e);
         }

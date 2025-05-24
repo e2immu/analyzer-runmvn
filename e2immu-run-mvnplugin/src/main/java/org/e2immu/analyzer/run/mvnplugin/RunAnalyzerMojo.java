@@ -74,13 +74,11 @@ public class RunAnalyzerMojo extends CommonMojo {
                 SingleIterationAnalyzer analyzer = new SingleIterationAnalyzerImpl(runtime, configuration);
                 SingleIterationAnalyzer.Output output = analyzer.go(order, false);
 
-                if (storeErrors && !output.problemsRaised().isEmpty()) {
-                    int n = output.problemsRaised().size();
+                if (storeErrors && !output.analyzerExceptions().isEmpty()) {
+                    int n = output.analyzerExceptions().size();
                     getLog().error("Modification analysis halted with " + n + " exceptions");
-                    for (Throwable throwable : output.problemsRaised()) {
-                        if (throwable instanceof AnalyzerException ae) {
-                            getLog().error("In " + ae.getInfo() + ": " + ae.getMessage());
-                        }
+                    for (AnalyzerException ae : output.analyzerExceptions()) {
+                        getLog().error("In " + ae.getInfo() + ": " + ae.getMessage());
                     }
                     if (failWhenStoredErrors) {
                         throw new MojoExecutionException("Failed to run analyzer, caught " + n + " exceptions");

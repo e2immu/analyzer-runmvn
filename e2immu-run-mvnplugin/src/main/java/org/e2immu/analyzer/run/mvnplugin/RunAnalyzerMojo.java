@@ -40,6 +40,9 @@ public class RunAnalyzerMojo extends CommonMojo {
     @Parameter(property = "errorMode", defaultValue = "failFast")
     private String errorMode;
 
+    @Parameter(property = "maxIterations", defaultValue = "5")
+    private int maxIterations;
+
     @Override
     public void execute() throws MojoExecutionException {
         boolean storeErrors = !"failFast".equalsIgnoreCase(errorMode);
@@ -70,9 +73,10 @@ public class RunAnalyzerMojo extends CommonMojo {
                 getLog().info("Starting modification analyzer");
                 IteratingAnalyzer.Configuration configuration = new IteratingAnalyzerImpl.ConfigurationBuilder()
                         .setStoreErrors(storeErrors)
+                        .setMaxIterations(maxIterations)
                         .build();
-                SingleIterationAnalyzer analyzer = new SingleIterationAnalyzerImpl(runtime, configuration);
-                SingleIterationAnalyzer.Output output = analyzer.go(order, false);
+                IteratingAnalyzer analyzer = new IteratingAnalyzerImpl(runtime);
+                IteratingAnalyzer.Output output = analyzer.analyze(order, configuration);
 
                 if (storeErrors && !output.analyzerExceptions().isEmpty()) {
                     int n = output.analyzerExceptions().size();

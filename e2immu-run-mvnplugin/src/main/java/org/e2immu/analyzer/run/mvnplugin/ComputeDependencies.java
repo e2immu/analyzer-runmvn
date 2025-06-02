@@ -63,7 +63,9 @@ public class ComputeDependencies {
         log.debug("@@".repeat(indent) + " enter recursion for " + sourceSet.name());
 
         String name = sourceSet.name();
-        builder.add(name, jmods);
+        if (!sourceSet.partOfJdk()) {
+            builder.add(name, jmods);
+        }
         if (sourceSet.dependencies() != null) {
             for (SourceSet dep : sourceSet.dependencies()) {
                 builder.add(name, List.of(dep.name()));

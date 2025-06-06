@@ -75,8 +75,8 @@ public class RunAnalyzerMojo extends CommonMojo {
                         .setStoreErrors(storeErrors)
                         .setMaxIterations(maxIterations)
                         .build();
-                IteratingAnalyzer analyzer = new IteratingAnalyzerImpl(runtime);
-                IteratingAnalyzer.Output output = analyzer.analyze(order, configuration);
+                IteratingAnalyzer analyzer = new IteratingAnalyzerImpl(runtime, configuration);
+                IteratingAnalyzer.Output output = analyzer.analyze(order);
 
                 if (storeErrors && !output.analyzerExceptions().isEmpty()) {
                     int n = output.analyzerExceptions().size();

@@ -84,7 +84,7 @@ public class WriteAnnotatedAPIsMojo extends CommonMojo {
         private final Map<MethodInfo, Integer> methodCallFrequencies;
         private final Map<MethodInfo, Integer> overrideFrequencies;
         private final Runtime runtime;
-        private final Map<Element,Element> translationMap;
+        private final Map<Element, Element> translationMap;
         private final Log log;
 
         public DecoratorWithComments(Log log,
@@ -108,11 +108,11 @@ public class WriteAnnotatedAPIsMojo extends CommonMojo {
                 Integer frequency = methodCallFrequencies.get(mi);
                 Comment comment;
                 if (frequency != null) {
-                    comment = runtime.newSingleLineComment("frequency " + frequency);
+                    comment = runtime.newSingleLineComment(runtime.noSource(), "frequency " + frequency);
                 } else {
                     Integer overrideFrequency = overrideFrequencies.get(mi);
                     if (overrideFrequency != null) {
-                        comment = runtime.newSingleLineComment("override has frequency " + overrideFrequency);
+                        comment = runtime.newSingleLineComment(runtime.noSource(), "override has frequency " + overrideFrequency);
                         return Stream.concat(Stream.of(comment), comments.stream()).toList();
                     } else {
                         comment = null;

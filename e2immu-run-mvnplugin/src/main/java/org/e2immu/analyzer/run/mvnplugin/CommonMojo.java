@@ -7,6 +7,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.DependencyResolutionException;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.ProjectDependenciesResolver;
+import org.e2immu.analyzer.run.config.util.ComputeDependencies;
 import org.e2immu.analyzer.run.config.util.JavaModules;
 import org.e2immu.language.cst.api.element.SourceSet;
 import org.e2immu.language.cst.api.expression.ConstructorCall;
@@ -72,12 +73,13 @@ public abstract class CommonMojo extends AbstractMojo {
 
         Set<String> excludeFromClasspathSet = excludeFromClasspath == null || excludeFromClasspath.isBlank() ? Set.of() :
                 Arrays.stream(excludeFromClasspath.split("[;,]\\s*")).collect(Collectors.toUnmodifiableSet());
-        ComputeSourceSets.Result result = new ComputeSourceSets(absWorkingDirectory, dependenciesResolver, project,
+        ComputeDependencies.SourceSetDependencies result = new ComputeSourceSets(absWorkingDirectory,
+                dependenciesResolver, project,
                 session, getLog()).compute(sourceEncoding, sourcePackages, testSourcePackages, excludeFromClasspathSet);
 
         makeJavaModules(jmods).forEach(set -> result.sourceSetsByName().put(set.name(), set));
 
-        G<String> graph = new ComputeDependencies(getLog()).go(result);
+        G<String> graph = new ComputeDependencies(s ->getLog().debug(s)).go(result);
         List<String> linearization = Linearize.linearize(graph).asList(String::compareToIgnoreCase);
         if(getLog().isDebugEnabled()) {
             getLog().debug("Graph: " + graph);

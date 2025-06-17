@@ -3,6 +3,7 @@ package org.e2immu.analyzer.run.mvnplugin;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.*;
+import org.e2immu.analyzer.run.config.util.ComputeDependencies;
 import org.e2immu.language.cst.api.element.SourceSet;
 import org.e2immu.language.inspection.resource.SourceSetImpl;
 import org.eclipse.aether.artifact.Artifact;
@@ -35,10 +36,11 @@ public class ComputeSourceSets {
         this.log = log;
     }
 
-    public Result compute(String sourceEncoding,
-                          String sourcePackages,
-                          String testSourcePackages,
-                          Set<String> excludeFromClasspathSet) throws DependencyResolutionException {
+    public ComputeDependencies.SourceSetDependencies compute(String sourceEncoding,
+                                                             String sourcePackages,
+                                                             String testSourcePackages,
+                                                             Set<String> excludeFromClasspathSet)
+            throws DependencyResolutionException {
         Map<String, SourceSet> sourceSetsByName = new HashMap<>();
         String projectName = project.getName();
         Charset encoding = Charset.forName(sourceEncoding, Charset.defaultCharset());
@@ -77,7 +79,7 @@ public class ComputeSourceSets {
             sourceSetsByName.put(testSourceSet.name(), testSourceSet);
         }
 
-        return new Result("main", sourceSetsByName);
+        return new ComputeDependencies.SourceSetDependencies("main", sourceSetsByName);
     }
 
     private Set<SourceSet> computeClassPathParts(String scope, boolean test, boolean runtimeOnly,
@@ -137,8 +139,5 @@ public class ComputeSourceSets {
                 Arrays.stream(sourcePackages.split("[,;]\\s*"))
                         .filter(s -> !s.isBlank())
                         .collect(Collectors.toUnmodifiableSet());
-    }
-
-    public record Result(String mainSourceSetName, Map<String, SourceSet> sourceSetsByName) {
     }
 }
